@@ -1,6 +1,7 @@
 # Tensorflow Object Detection API in a ROS node!!!
 
-# Install https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/installation.md
+# Install
+https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/installation.md
 
 
 # Download models
