@@ -1,5 +1,10 @@
 # Tensorflow Object Detection API in a ROS node!!!
 
+Detect objects as bounding boxes or masks using one of 28 models from Tensorflow Models repository!
+
+![Examples](example_images/example.jpg)
+
+
 # Install
 https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/installation.md
 
