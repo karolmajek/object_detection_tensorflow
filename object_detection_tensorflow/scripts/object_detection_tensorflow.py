@@ -41,7 +41,9 @@ class ObjectDetectionTensorflow:
                                             "/image_raw")
         self.image_sub = rospy.Subscriber(self.camera_topic, Image,
                                           self.callback, queue_size=1)
-        self.image_pub = rospy.Publisher("detections/image_raw/compressed", CompressedImage, queue_size=5)
+        self.render = rospy.get_param('~render', True)
+        if self.render:
+            self.image_pub = rospy.Publisher("detections/image_raw/compressed", CompressedImage, queue_size=5)
         self.model_name = rospy.get_param('~model_name')
         self.models_dir = rospy.get_param('~models_dir')
         self.path_to_ckpt = self.models_dir + '/' + self.model_name + '/frozen_inference_graph.pb'
@@ -49,8 +51,8 @@ class ObjectDetectionTensorflow:
         self.num_classes = rospy.get_param('~num_classes', 90)
         self.threshold = rospy.get_param('~threshold', 0.5)
         self.rotate = rospy.get_param('~rotate', False)
-        self.render = rospy.get_param('~render', True)
         self.debug = rospy.get_param('~debug', False)
+        self.bbox_pub = rospy.Publisher(self.camera_topic+"/detections", BBoxArray, queue_size=5)
 
         print("path_to_ckpt:",self.path_to_ckpt)
         print("path_to_labels:",self.path_to_labels)
@@ -76,6 +78,7 @@ class ObjectDetectionTensorflow:
 
             with tf.gfile.GFile(self.path_to_ckpt, 'rb') as fid:
                 serialized_graph = fid.read()
+                print("Parsing")
                 od_graph_def.ParseFromString(serialized_graph)
                 tf.import_graph_def(od_graph_def, name='')
             config = tf.ConfigProto()
@@ -84,7 +87,7 @@ class ObjectDetectionTensorflow:
 
             # Get handles to input and output tensors
             ops = tf.get_default_graph().get_operations()
-
+            print("Outputs:")
             all_tensor_names = {output.name for op in ops for output in op.outputs}
             self.tensor_dict = {}
             for key in [
@@ -93,6 +96,7 @@ class ObjectDetectionTensorflow:
             ]:
                 tensor_name = key + ':0'
                 if tensor_name in all_tensor_names:
+                    print("  "+key)
                     self.tensor_dict[key] = tf.get_default_graph().get_tensor_by_name(
                     tensor_name)
             self.image_tensor = tf.get_default_graph().get_tensor_by_name('image_tensor:0')
@@ -175,6 +179,7 @@ class ObjectDetectionTensorflow:
                     debug_list.append(self.category_index[cl]['name']+" (%.1f) "%(score*100))
                     # print(box,cl,score,self.category_index[cl]['name'])
                     bboxes.bboxes.append(b)
+            self.bbox_pub.publish(bboxes)
             if self.debug:
                 print(' '.join(sorted(debug_list)))
             if self.render:
