@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function
 import roslib
-roslib.load_manifest('object_detection_tensorflow')
+# roslib.load_manifest('object_detection_tensorflow')
 import sys
 import rospy
 import cv2
@@ -22,14 +22,17 @@ from object_detection.utils import ops as utils_ops
 from object_detection.utils import label_map_util
 from object_detection.utils import visualization_utils as vis_util
 
+from object_detection_tensorflow_msgs.msg import BBox, BBoxArray
+
 #Disable Tensroflow log
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 SKIP_FRAMES = 0
 
 
-class image_converter:
+class ObjectDetectionTensorflow:
     def __init__(self):
+        self.seq = 0
         self.ready = False
         self.counter = 0
         self.bridge = CvBridge()
@@ -43,7 +46,11 @@ class image_converter:
         self.models_dir = rospy.get_param('~models_dir')
         self.path_to_ckpt = self.models_dir + '/' + self.model_name + '/frozen_inference_graph.pb'
         self.path_to_labels =rospy.get_param('~path_to_labels')
-        self.num_classes = int(rospy.get_param('~num_classes', 90))
+        self.num_classes = rospy.get_param('~num_classes', 90)
+        self.threshold = rospy.get_param('~threshold', 0.5)
+        self.rotate = rospy.get_param('~rotate', False)
+        self.render = rospy.get_param('~render', True)
+        self.debug = rospy.get_param('~debug', False)
 
         print("path_to_ckpt:",self.path_to_ckpt)
         print("path_to_labels:",self.path_to_labels)
@@ -58,7 +65,9 @@ class image_converter:
          max_num_classes=self.num_classes, use_display_name=True)
         self.category_index = label_map_util.create_category_index(self.categories)
 
-        print("Category map loaded")
+        print("Category map loaded:")
+        for i,n in zip (self.category_index.keys(),[str(_['name']) for _ in self.category_index.values()]):
+            print("%4d %s"%(i,n))
 
         self.detection_graph = tf.Graph()
         with self.detection_graph.as_default():
@@ -87,9 +96,9 @@ class image_converter:
                     self.tensor_dict[key] = tf.get_default_graph().get_tensor_by_name(
                     tensor_name)
             self.image_tensor = tf.get_default_graph().get_tensor_by_name('image_tensor:0')
-            print("Model loaded. Waiting for messages on topic:",self.camera_topic)
 
         self.ready = True
+        print("Model loaded. Waiting for messages on topic:",self.camera_topic)
 
     def run_inference_for_single_image(self, image):
         with self.detection_graph.as_default():
@@ -125,7 +134,7 @@ class image_converter:
 
     def callback(self, data):
         if not self.ready:
-            print("Not ready, still loading...")
+            # print("Received image, but not yet ready, still loading...")
             return
         if self.counter < SKIP_FRAMES:
             self.counter = self.counter + 1
@@ -136,31 +145,63 @@ class image_converter:
         try:
             image = self.bridge.imgmsg_to_cv2(data, "rgb8")
 
+            if self.rotate:
+                #Rotate90
+                image = np.transpose(image, (1, 0, 2))
+                image = image[::-1,:,:]
+
+
             output_dict = self.run_inference_for_single_image(image)
-            # Visualization of the results of a detection.
-            vis_util.visualize_boxes_and_labels_on_image_array(
-              image,
-              output_dict['detection_boxes'],
-              output_dict['detection_classes'],
-              output_dict['detection_scores'],
-              self.category_index,
-              instance_masks=output_dict.get('detection_masks'),
-              # min_score_thresh=0.7,
-              use_normalized_coordinates=True,
-              line_thickness=8)
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            msg = CompressedImage()
-            msg.header.stamp = rospy.Time.now()
-            msg.format = "jpeg"
-            msg.data = np.array(cv2.imencode('.jpg', image)[1]).tostring()
-            self.image_pub.publish(msg)
+
+            bboxes=BBoxArray()
+            debug_list=[]
+            for box, cl, score in zip(output_dict['detection_boxes'],
+            output_dict['detection_classes'],
+            output_dict['detection_scores']):
+                if score>=self.threshold:
+                    b = BBox()
+                    b.header.seq = self.seq
+                    self.seq = self.seq+1
+                    b.header.stamp = data.header.stamp
+                    b.header.frame_id = data.header.frame_id
+                    b.xmin = box[0]
+                    b.ymin = box[1]
+                    b.xmax = box[2]
+                    b.ymax = box[3]
+                    b.score = score
+                    b.name = str(self.category_index[cl]['name'])
+                    b.id = cl
+                    b.camera_topic = self.camera_topic
+                    debug_list.append(self.category_index[cl]['name']+" (%.1f) "%(score*100))
+                    # print(box,cl,score,self.category_index[cl]['name'])
+                    bboxes.bboxes.append(b)
+            if self.debug:
+                print(' '.join(sorted(debug_list)))
+            if self.render:
+                # Visualization of the results of a detection.
+                vis_util.visualize_boxes_and_labels_on_image_array(
+                  image,
+                  output_dict['detection_boxes'],
+                  output_dict['detection_classes'],
+                  output_dict['detection_scores'],
+                  self.category_index,
+                  instance_masks=output_dict.get('detection_masks'),
+                  min_score_thresh=self.threshold,
+                  use_normalized_coordinates=True,
+                  line_thickness=8)
+                image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                msg = CompressedImage()
+                msg.header.stamp = rospy.Time.now()
+                msg.format = "jpeg"
+                msg.data = np.array(cv2.imencode('.jpg', image)[1]).tostring()
+                self.image_pub.publish(msg)
         except CvBridgeError as e:
             print(e)
 
 
 def main(args):
     rospy.init_node('object_detection_tensorflow', anonymous=True)
-    ic = image_converter()
+    ic = ObjectDetectionTensorflow()
     try:
         rospy.spin()
     except KeyboardInterrupt:

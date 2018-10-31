@@ -5,12 +5,14 @@
   <arg name="models_dir" default="$(find object_detection_tensorflow)/models"/>
   <arg name="path_to_labels" default="$(find object_detection_tensorflow)/data/mscoco_label_map.pbtxt"/>
   <arg name="num_classes" default="90"/>
-  <node pkg="object_detection_tensorflow" type="object_detection_tensorflow.py" name="object_detection_tensorflow_node">
+  <node pkg="object_detection_tensorflow" type="object_detection_tensorflow.py" name="object_detection_tensorflow_node" output="screen">
     <param name="camera_topic" value="$(arg camera_topic)"/>
     <param name="models_dir" value="$(arg models_dir)"/>
     <param name="model_name" value="$(arg model_name)"/>
     <param name="path_to_labels" value="$(arg path_to_labels)"/>
     <param name="num_classes" value="$(arg num_classes)"/>
+    <param name="rotate" value="False"/>
+    <param name="threshold" value="0.01"/>
+    <param name="render" value="False"/>
   </node>
-  <node pkg="usb_cam" type="usb_cam_node" name="usb_cam_node"/>
 </launch>

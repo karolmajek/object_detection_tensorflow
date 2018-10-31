@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>object_detection_tensorflow_msgs</name>
+  <version>0.0.1</version>
+  <description>The object_detection_tensorflow_msgs package</description>
+  <maintainer email="karolmajek@gmail.com">Karol Majek</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>std_msgs</depend>
+
+  <build_depend>message_generation</build_depend>
+  <exec_depend>message_runtime</exec_depend>
+
+</package>
