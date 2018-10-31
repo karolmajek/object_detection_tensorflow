@@ -158,6 +158,9 @@ class ObjectDetectionTensorflow:
             output_dict = self.run_inference_for_single_image(image)
 
             bboxes=BBoxArray()
+            bboxes.camera_topic = self.camera_topic
+            bboxes.header.stamp = data.header.stamp
+            bboxes.header.frame_id = data.header.frame_id
             debug_list=[]
             for box, cl, score in zip(output_dict['detection_boxes'],
             output_dict['detection_classes'],

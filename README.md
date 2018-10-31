@@ -82,7 +82,8 @@ roslaunch object_detection_tensorflow mask_rcnn_inception_v2.launch
 
 ### Published Topics
 
-- ~detections/image_raw/compressed (sensor_msgs/CompressedImage)
+- sensor_msgs/CompressedImage
+- object_detection_tensorflow_msgs/BBoxArray
 
 ### Parameters
 
@@ -91,3 +92,18 @@ roslaunch object_detection_tensorflow mask_rcnn_inception_v2.launch
 - **~model_name** - name of the directory where the model is located
 - **~path_to_labels** - path to labels.pbtxt
 - **~num_classes** default: 90 - number o classes
+
+## object_detection_tensorflow_viz.py
+
+![Viz](example_images/viz.jpg)
+
+Node is an example of BBoxArray subscriber. It subscribes to BBoxArray and image, draws bboxes and publishes the result.
+
+### Subscribed Topics
+
+- sensor_msgs/CompressedImage
+- object_detection_tensorflow_msgs/BBoxArray
+
+### Published Topics
+
+- sensor_msgs/CompressedImage
