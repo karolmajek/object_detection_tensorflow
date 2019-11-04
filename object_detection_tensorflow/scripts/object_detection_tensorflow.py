@@ -129,7 +129,7 @@ class ObjectDetectionTensorflow:
             # all outputs are float32 numpy arrays, so convert types as appropriate
             output_dict['num_detections'] = int(output_dict['num_detections'][0])
             output_dict['detection_classes'] = output_dict[
-            'detection_classes'][0].astype(np.uint8)
+            'detection_classes'][0].astype(np.int64)
             output_dict['detection_boxes'] = output_dict['detection_boxes'][0]
             output_dict['detection_scores'] = output_dict['detection_scores'][0]
             if 'detection_masks_reframed' in output_dict:
