@@ -18,9 +18,9 @@ import sys
 import tarfile
 import tensorflow as tf
 import zipfile
-from object_detection.utils import ops as utils_ops
-from object_detection.utils import label_map_util
-from object_detection.utils import visualization_utils as vis_util
+from utils import ops as utils_ops
+from utils import label_map_util
+from utils import visualization_utils as vis_util
 
 from object_detection_tensorflow_msgs.msg import BBox, BBoxArray
 
@@ -28,7 +28,6 @@ from object_detection_tensorflow_msgs.msg import BBox, BBoxArray
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 SKIP_FRAMES = 0
-
 
 class ObjectDetectionTensorflow:
     def __init__(self):
@@ -147,7 +146,7 @@ class ObjectDetectionTensorflow:
         else:
             self.counter = 0
         try:
-            image = self.bridge.imgmsg_to_cv2(data, "rgb8")
+            image = self.bridge.imgmsg_to_cv2(data, "bgr8")
 
             if self.rotate:
                 #Rotate90
@@ -197,7 +196,7 @@ class ObjectDetectionTensorflow:
                   min_score_thresh=self.threshold,
                   use_normalized_coordinates=True,
                   line_thickness=8)
-                image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
                 msg = CompressedImage()
                 msg.header.stamp = rospy.Time.now()
                 msg.format = "jpeg"
