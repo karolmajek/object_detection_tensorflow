@@ -22,8 +22,18 @@ print("Downloading, please wait (progress per file)")
 for m in tqdm(matches):
     print("Downloading:",m)
     local_file = download_dir + '/' + m.split('/')[-1]
-    urllib.request.urlretrieve(m, local_file)
-    tar = tarfile.open(local_file)
-    tar.extractall(path=download_dir)
-    tar.close()
-    os.remove(local_file)
+    try:
+        urllib.request.urlretrieve(m, local_file)
+    except:
+        try:
+            print("Retry download:",m)
+            urllib.request.urlretrieve(m, local_file)
+        except:
+            print("Failed to download:",m)
+    try:
+        tar = tarfile.open(local_file)
+        tar.extractall(path=download_dir)
+        tar.close()
+        os.remove(local_file)
+    except:
+        print("Failed to extract:",local_file)
